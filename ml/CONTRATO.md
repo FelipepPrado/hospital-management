@@ -2,7 +2,7 @@
 
 > **Versão do modelo**: 1.0  
 > **Algoritmo**: Naive Bayes (GaussianNB) com ColumnTransformer  
-> **Features**: 28 (9 numéricas contínuas + 19 categóricas/OneHot)  
+> **Features**: 38 (17 numéricas + 21 categóricas) → 85 colunas após OneHot  
 > **Target**: `readmission_30d` (0 = Não readmite, 1 = Readmite em ≤30 dias)
 
 ---
@@ -154,4 +154,4 @@ curl -X POST http://localhost:5000/api/v1/predict/readmission-30d   -H "Content-
 5. **`is_elderly`**: Derivado de `age >= 65`; o backend deve calcular.
 6. **Missing values**: O pipeline trata NaN nas numéricas (imputação via treino) e `handle_unknown='ignore'` nas categóricas.
 7. **`predict_proba`**: Disponível e funcional — retorna array shape (n_samples, 2).
-8. **Versão sklearn**: Treinado com scikit-learn 1.5.x; backend deve usar versão compatível.
+8. **Versão sklearn**: Treinado com scikit-learn 1.9.1; backend deve usar a mesma versão.
