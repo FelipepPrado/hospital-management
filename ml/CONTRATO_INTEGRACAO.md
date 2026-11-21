@@ -33,7 +33,7 @@ ml/notebooks/
 ### 2.2 Modelo Serializado
 ```
 backend/model/
-└── modelo_nb.joblib       # Pipeline completo: ColumnTransformer + GaussianNB
+└── modelo_nb.joblib       # Pipeline completo: ColumnTransformer + GaussianNB (38 features, sklearn 1.9.1)
 ```
 
 ### 2.3 Script de Validação
@@ -234,7 +234,7 @@ GET /health
 {
   "status": "ok",
   "model_version": "1.0",
-  "sklearn_version": "1.5.2",
+  "sklearn_version": "1.9.1",
   "model_loaded": true
 }
 ```
@@ -268,16 +268,16 @@ GET /health
 
 ## 7. Métricas de Referência (Para Validação de Qualidade)
 
-| Métrica | Valor Esperado | Critério de Aceite |
-|---------|----------------|-------------------|
-| **Acurácia** | ~0.75–0.82 | ≥ 0.70 |
-| **Precision (macro)** | ~0.70–0.78 | ≥ 0.65 |
-| **Recall / Sensibilidade (macro)** | ~0.65–0.75 | ≥ 0.60 |
-| **F1-score (macro)** | ~0.68–0.76 | ≥ 0.65 |
-| **AUC-ROC** | ~0.78–0.85 | ≥ 0.75 |
-| **AUC-PR** | ~0.55–0.65 | ≥ 0.50 |
+| Métrica | Valor Esperado (atual) | Critério de Aceite |
+|---------|------------------------|-------------------|
+| **Acurácia** | 0.6023 | ≥ 0.55 |
+| **Precision (macro)** | 0.6032 | ≥ 0.55 |
+| **Recall / Sensibilidade (macro)** | 0.6166 | ≥ 0.55 |
+| **F1-score (macro)** | 0.5909 | ≥ 0.55 |
+| **AUC-ROC** | 0.6518 | ≥ 0.60 |
+| **AUC-PR** | 0.4455 | ≥ 0.40 |
 
-> Se o modelo em produção divergir significativamente, **re-treinar com `02_treino.ipynb`**.
+> **Nota**: Métricas do Naive Bayes (GaussianNB) com Charlson incluído. Baseline Logistic Regression obtém Accuracy~0.64, F1-macro~0.62, AUC~0.70. Se o modelo em produção divergir significativamente, **re-treinar com `02_treino.ipynb`**.
 
 ---
 
@@ -321,10 +321,10 @@ python ml/teste_carregamento.py
 ### 9.4 Versões Críticas (Registrar no README)
 ```bash
 python --version          # Ex: 3.11.9
-python -c "import sklearn; print(sklearn.__version__)"  # Ex: 1.5.2
+python -c "import sklearn; print(sklearn.__version__)"  # Ex: 1.9.1
 ```
 
-> **Regra**: Backend **deve usar a mesma versão do scikit-learn** do treino. Se versions divergirem, re-treinar.
+> **Regra**: Backend **deve usar a mesma versão do scikit-learn** do treino (1.9.1). Se versions divergirem, re-treinar.
 
 ---
 

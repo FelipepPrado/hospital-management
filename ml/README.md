@@ -52,7 +52,7 @@ ml/
 | **Variável alvo** | `readmission_30d` (binária) |
 | **Classes** | 0 = Baixo Risco (não readmite), 1 = Alto Risco (readmite) |
 | **Campos de entrada (contrato)** | 38 campos: 9 demografia + 8 internação + 12 clínico na alta + 9 medicações (ver `ml/CONTRATO.md`) |
-| **Features usadas pelo modelo** | 37 (17 numéricas + 20 categóricas) → 82 colunas após OneHot. `baseline_charlson_comorbidity_index` consta no contrato, mas **não entrou no treino** (ver Limitações, item 9) |
+| **Features usadas pelo modelo** | 38 (17 numéricas + 21 categóricas) → 85 colunas após OneHot. Inclui `baseline_charlson_comorbidity_index` (corrigido em 2026-11-21) |
 | **Ordem das features** | Fixada em `ml/CONTRATO.md` (igual ao treino) |
 | **Pré-processamento** | `ColumnTransformer`: `SimpleImputer(median)` + `StandardScaler` (num) / `SimpleImputer(most_frequent)` + `OneHotEncoder(handle_unknown='ignore')` (cat) |
 | **Modelo final** | `GaussianNB` (Naive Bayes) — requisito do trabalho |
@@ -66,21 +66,21 @@ ml/
 
 | Métrica | Valor |
 |---------|-------|
-| **Accuracy** | 0.5970 |
-| **Precision (macro)** | 0.5969 |
-| **Recall (macro)** | 0.6095 |
-| **F1-score (macro)** | 0.5850 |
-| **AUC-ROC** | 0.6473 |
-| **AUC-PR** | 0.4413 |
+| **Accuracy** | 0.6023 |
+| **Precision (macro)** | 0.6032 |
+| **Recall (macro)** | 0.6166 |
+| **F1-score (macro)** | 0.5909 |
+| **AUC-ROC** | 0.6518 |
+| **AUC-PR** | 0.4455 |
 
 **Matriz de Confusão:**
 ```
                  Predito 0    Predito 1
-Real 0 (Não)      1014          756
-Real 1 (Sim)       309          564
+Real 0 (Não)      1025          745
+Real 1 (Sim)       298          575
 ```
 
-> **Nota**: O baseline Logistic Regression obteve Accuracy=0.73, F1-macro=0.71, AUC=0.80 — superior ao NB, como esperado para features correlacionadas. O Naive Bayes foi mantido por ser requisito do trabalho.
+> **Nota**: O baseline Logistic Regression obteve Accuracy=0.64, F1-macro=0.62, AUC=0.70 — superior ao NB, como esperado para features correlacionadas. O Naive Bayes foi mantido por ser requisito do trabalho.
 
 ---
 
@@ -146,7 +146,7 @@ python -c "import sklearn; print(sklearn.__version__)"  # requirements.txt fixa 
 6. **Split aleatório** — Em produção usar *time-series split* (treino: meses antigos, teste: mês recente)
 7. **Generalização geográfica** — Dataset sem localização; práticas de alta variam por país/sistema
 8. **Baseline LR superior** — Regressão Logística costuma bater NB em features correlacionadas; NB escolhido por requisito do trabalho
-9. **Charlson fora do treino** — No `02_treino.ipynb`, a lista `patient_features` pede `charlson_comorbidity_index`, mas a coluna real é `baseline_charlson_comorbidity_index`; o filtro descartou o nome sem erro. O modelo treinado usa 37 features. O backend pode enviar o campo (o `ColumnTransformer` o ignora), mas ele não influencia a predição até o notebook ser corrigido e o modelo retreinado
+9. **Charlson corrigido** — Corrigido em 2026-11-21: o notebook agora usa `baseline_charlson_comorbidity_index` (nome real no patients.csv). O modelo foi retreinado com 38 features incluindo Charlson, com melhoria nas métricas (F1-macro: 0.585 → 0.591, AUC-ROC: 0.647 → 0.652)
 
 ---
 
