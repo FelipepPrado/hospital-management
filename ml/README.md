@@ -36,7 +36,10 @@ ml/
 │   └── 02_treino.ipynb        # Pipeline, treino, avaliação, exportação
 ├── data/                      # CSVs do dataset (fora do Git)
 ├── requirements.txt           # Dependências fixas (pip freeze)
+├── teste_carregamento.py      # Teste standalone de carregamento/predição do modelo
 ├── CONTRATO.md                # Contrato de API (campos, tipos, saída)
+├── CONTRATO_INTEGRACAO.md     # Contrato ML ↔ Backend ↔ Frontend
+├── ARQUITETURA_ML_BACKEND.md  # Fluxo de integração
 └── README.md
 ```
 
@@ -48,7 +51,8 @@ ml/
 |------|---------|
 | **Variável alvo** | `readmission_30d` (binária) |
 | **Classes** | 0 = Baixo Risco (não readmite), 1 = Alto Risco (readmite) |
-| **Features finais** | 38 (7 numéricas + 31 categóricas após OneHot) |
+| **Campos de entrada (contrato)** | 38 campos: 9 demografia + 8 internação + 12 clínico na alta + 9 medicações (ver `ml/CONTRATO.md`) |
+| **Features usadas pelo modelo** | 37 (17 numéricas + 20 categóricas) → 82 colunas após OneHot. `baseline_charlson_comorbidity_index` consta no contrato, mas **não entrou no treino** (ver Limitações, item 9) |
 | **Ordem das features** | Fixada em `ml/CONTRATO.md` (igual ao treino) |
 | **Pré-processamento** | `ColumnTransformer`: `SimpleImputer(median)` + `StandardScaler` (num) / `SimpleImputer(most_frequent)` + `OneHotEncoder(handle_unknown='ignore')` (cat) |
 | **Modelo final** | `GaussianNB` (Naive Bayes) — requisito do trabalho |
@@ -104,8 +108,10 @@ jupyter nbconvert --to notebook --execute notebooks/02_treino.ipynb --output not
 ### Testar Carregamento Standalone
 
 ```bash
-python notebooks/teste_carregamento.py
+python teste_carregamento.py
 ```
+
+> Requer o `backend/model/modelo_nb.joblib` gerado pelo notebook `02_treino.ipynb`.
 
 Saída esperada:
 ```
@@ -122,8 +128,8 @@ Score de risco (%): 100.0%
 ## Versões Críticas (Registrar na Entrega)
 
 ```bash
-python --version                    # Ex: 3.11.x
-python -c "import sklearn; print(sklearn.__version__)"  # Ex: 1.5.x
+python --version
+python -c "import sklearn; print(sklearn.__version__)"  # requirements.txt fixa scikit-learn==1.9.1
 ```
 
 > **Regra**: Backend **deve usar a mesma versão do scikit-learn** do treino. Se divergir, re-treinar.
@@ -140,6 +146,7 @@ python -c "import sklearn; print(sklearn.__version__)"  # Ex: 1.5.x
 6. **Split aleatório** — Em produção usar *time-series split* (treino: meses antigos, teste: mês recente)
 7. **Generalização geográfica** — Dataset sem localização; práticas de alta variam por país/sistema
 8. **Baseline LR superior** — Regressão Logística costuma bater NB em features correlacionadas; NB escolhido por requisito do trabalho
+9. **Charlson fora do treino** — No `02_treino.ipynb`, a lista `patient_features` pede `charlson_comorbidity_index`, mas a coluna real é `baseline_charlson_comorbidity_index`; o filtro descartou o nome sem erro. O modelo treinado usa 37 features. O backend pode enviar o campo (o `ColumnTransformer` o ignora), mas ele não influencia a predição até o notebook ser corrigido e o modelo retreinado
 
 ---
 
@@ -147,19 +154,19 @@ python -c "import sklearn; print(sklearn.__version__)"  # Ex: 1.5.x
 
 - [x] `ml/notebooks/01_exploracao.ipynb` — EDA completa, joins, feature engineering, justificativas
 - [x] `ml/notebooks/02_treino.ipynb` — Pipeline, treino, avaliação, exportação, limitações
-- [x] `backend/model/modelo_nb.joblib` — Pipeline completo (preprocess + GaussianNB)
-- [x] `ml/notebooks/teste_carregamento.py` — Funciona standalone
+- [ ] `backend/model/modelo_nb.joblib` — Pipeline completo (preprocess + GaussianNB) — **ainda não versionado**; gerar rodando `02_treino.ipynb`
+- [x] `ml/teste_carregamento.py` — Teste standalone (caminho do modelo a conferir)
 - [x] `ml/CONTRATO.md` — 38 campos documentados com tipos, ranges, saída JSON
 - [x] `ml/README.md` — Decisões, versões, como rodar, limitações
 - [x] `ml/requirements.txt` — `pip freeze` fixo
-- [x] `.gitignore` — Inclui `.venv/`, `ml/data/`, `*.joblib`, `__pycache__/`
+- [ ] `.gitignore` — hoje só ignora `.venv`; falta `ml/data/`, `*.joblib` e `__pycache__/`
 
 ---
 
 ## Contrato com Backend/Frontend
 
 Ver `ml/CONTRATO.md` para:
-- 38 campos de entrada na ordem exata do treino
+- 38 campos de entrada na ordem exata do treino (37 efetivamente usados pelo modelo, ver Limitações, item 9)
 - Tipos, ranges e valores aceitos por campo
 - Formato de saída JSON (classe, probabilidades, score %, recomendação)
 - Exemplo de requisição cURL
