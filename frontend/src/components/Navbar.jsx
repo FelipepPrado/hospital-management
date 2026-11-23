@@ -1,20 +1,20 @@
 import React from 'react';
 import { Activity, ShieldCheck, AlertCircle, Info, Stethoscope, RefreshCw } from 'lucide-react';
 
-export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo, onSelectPreset }) {
+export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo }) {
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <header className="print:hidden bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between min-h-16 gap-2 py-2">
           {/* Logo & Título */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
               <Stethoscope className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-x-2">
                 <span className="font-bold text-lg text-slate-900 tracking-tight">HospPredict</span>
-                <span className="bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-md font-semibold border border-teal-200">
+                <span className="hidden sm:inline bg-teal-50 text-teal-700 text-xs px-2 py-0.5 rounded-md font-semibold border border-teal-200">
                   ML 1.0 (Naive Bayes)
                 </span>
               </div>
@@ -49,7 +49,7 @@ export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo
                     : 'bg-rose-500'
                 }`}
               />
-              <span className="hidden md:inline">
+              <span role="status" className="sr-only md:not-sr-only">
                 {backendStatus === 'ok'
                   ? 'API Conectada'
                   : backendStatus === 'degraded'
@@ -60,6 +60,7 @@ export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo
               </span>
               <button
                 onClick={onRefreshHealth}
+                disabled={backendStatus === 'checking'}
                 title="Checar status da API novamente"
                 className="hover:opacity-75 transition-opacity"
               >
@@ -70,6 +71,7 @@ export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo
             {/* Botão Sobre o Modelo */}
             <button
               onClick={onOpenModelInfo}
+              aria-label="Critérios e métricas do modelo"
               className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
             >
               <Info className="w-4 h-4 text-slate-500" />

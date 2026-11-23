@@ -1,3 +1,4 @@
+import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { Building2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { ENUMS } from '../constants/fields';
@@ -104,7 +105,11 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
             }
             className={`input-field ${errors.length_of_stay_days ? 'input-field-error' : ''}`}
             placeholder="0 a 60 dias"
+            {...fieldErrorProps(errors, 'length_of_stay_days')}
           />
+          {errors.length_of_stay_days && (
+            <p id="length_of_stay_days-error" className="mt-1 text-xs text-rose-700">{errors.length_of_stay_days}</p>
+          )}
           <div className="flex items-center justify-between mt-1 text-[11px]">
             <span className="text-slate-400">0 a 60 dias</span>
             {formData.length_of_stay_days !== '' && (
@@ -132,37 +137,37 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
             }
             className={`input-field ${errors.revisit_count ? 'input-field-error' : ''}`}
             placeholder="0 a 20"
+            {...fieldErrorProps(errors, 'revisit_count')}
           />
+          {errors.revisit_count && (
+            <p id="revisit_count-error" className="mt-1 text-xs text-rose-700">{errors.revisit_count}</p>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">Quantas vezes o paciente já retornou</p>
         </div>
 
         {/* Primeira Internação / Dias desde Última Alta */}
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Primeira Internação?</span>
+            <label htmlFor="is_first_admission" className="text-xs font-semibold text-slate-700">Primeira Internação?</label>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                id="is_first_admission"
                 checked={isFirstAdmission}
                 onChange={(e) => {
                   const checked = e.target.checked;
                   onChange('is_first_admission', checked);
-                  if (checked) {
-                    onChange('days_since_last_discharge', null);
-                  } else {
-                    onChange('days_since_last_discharge', 45);
-                  }
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
             </label>
           </div>
 
           {!isFirstAdmission && (
             <div>
               <label className="input-label" htmlFor="days_since_last_discharge">
-                Dias desde Última Alta
+                Dias desde Última Alta *
               </label>
               <input
                 id="days_since_last_discharge"
@@ -177,16 +182,20 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
                     e.target.value === '' ? '' : Number(e.target.value)
                   )
                 }
-                className="input-field"
+                className={`input-field ${errors.days_since_last_discharge ? 'input-field-error' : ''}`}
                 placeholder="Ex: 45"
+                {...fieldErrorProps(errors, 'days_since_last_discharge')}
               />
+              {errors.days_since_last_discharge && (
+                <p id="days_since_last_discharge-error" className="mt-1 text-xs text-rose-700">{errors.days_since_last_discharge}</p>
+              )}
               <p className="text-[11px] text-slate-400 mt-1">Tempo transcorrido desde a última alta</p>
             </div>
           )}
 
           {isFirstAdmission && (
             <p className="text-xs text-emerald-700 font-medium">
-              Primeira internação registrada (modelo enviará valor nulo / flag=1).
+              Sem internação anterior.
             </p>
           )}
         </div>

@@ -141,7 +141,7 @@ export const CLINICAL_PRESETS = [
   {
     id: 'moderate-risk',
     title: 'Paciente Clínico Médio (Risco Moderado)',
-    description: '55 anos, infecção respiratória com melhora clínica, 1ª internação.',
+    description: '55 anos, infecção respiratória com melhora clínica e uma revisita anterior.',
     badge: 'Moderado',
     badgeColor: 'amber',
     data: {

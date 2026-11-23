@@ -11,7 +11,7 @@ const TABS = [
 export default function TabsNavigation({ activeTab, onSelectTab, tabCompletion = {} }) {
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-2 mb-6">
-      <nav className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <nav aria-label="Etapas da avaliação" className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -21,6 +21,7 @@ export default function TabsNavigation({ activeTab, onSelectTab, tabCompletion =
             <button
               key={tab.id}
               type="button"
+              aria-current={isActive ? 'step' : undefined}
               onClick={() => onSelectTab(tab.id)}
               className={`flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-150 relative ${
                 isActive

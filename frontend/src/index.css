@@ -26,3 +26,18 @@
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
   }
 }
+
+@media print {
+  #resultado-clinico {
+    box-shadow: none;
+    overflow: visible;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  #resultado-clinico h2,
+  #resultado-clinico h3,
+  #resultado-clinico h4 {
+    break-after: avoid;
+  }
+}

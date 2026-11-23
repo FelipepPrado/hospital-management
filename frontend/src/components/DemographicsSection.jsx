@@ -1,3 +1,4 @@
+import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { User, HelpCircle, AlertCircle } from 'lucide-react';
 import { ENUMS } from '../constants/fields';
@@ -41,10 +42,11 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
               onChange={(e) => onChange('age', e.target.value === '' ? '' : Number(e.target.value))}
               className={`input-field ${errors.age ? 'input-field-error' : ''}`}
               placeholder="Ex: 68"
+              {...fieldErrorProps(errors, 'age')}
             />
           </div>
           {errors.age ? (
-            <p className="text-xs text-rose-600 mt-1 flex items-center gap-1">
+            <p id="age-error" className="text-xs text-rose-600 mt-1 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5" /> {errors.age}
             </p>
           ) : (
@@ -96,9 +98,13 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
             onChange={(e) =>
               onChange('charlson_comorbidity_index', e.target.value === '' ? null : Number(e.target.value))
             }
-            className="input-field"
+            className={`input-field ${errors.charlson_comorbidity_index ? 'input-field-error' : ''}`}
             placeholder="0 a 15"
+            {...fieldErrorProps(errors, 'charlson_comorbidity_index')}
           />
+          {errors.charlson_comorbidity_index && (
+            <p id="charlson_comorbidity_index-error" className="mt-1 text-xs text-rose-700">{errors.charlson_comorbidity_index}</p>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">Escala de 0 a 15 (opcional)</p>
         </div>
 
@@ -111,16 +117,17 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
             id="bmi"
             name="bmi"
             type="number"
-            step="0.1"
+            step="any"
             min="10.0"
             max="60.0"
             value={formData.bmi ?? ''}
             onChange={(e) => onChange('bmi', e.target.value === '' ? '' : Number(e.target.value))}
             className={`input-field ${errors.bmi ? 'input-field-error' : ''}`}
             placeholder="Ex: 27.5"
+            {...fieldErrorProps(errors, 'bmi')}
           />
           {errors.bmi ? (
-            <p className="text-xs text-rose-600 mt-1">{errors.bmi}</p>
+            <p id="bmi-error" className="text-xs text-rose-600 mt-1">{errors.bmi}</p>
           ) : (
             <p className="text-[11px] text-slate-400 mt-1">Índice de massa corporal (10.0 a 60.0)</p>
           )}

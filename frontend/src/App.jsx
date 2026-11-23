@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import TabsNavigation from './components/TabsNavigation';
 import DemographicsSection from './components/DemographicsSection';
@@ -8,6 +8,7 @@ import MedicationsSection from './components/MedicationsSection';
 import ResultCard from './components/ResultCard';
 import ModelInfoModal from './components/ModelInfoModal';
 import { checkBackendHealth, requestPrediction } from './services/api';
+import { getFieldTab, validateForm } from './constants/validation';
 import { INITIAL_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
 import {
   ChevronLeft,
@@ -31,22 +32,54 @@ export default function App() {
   const [backendStatus, setBackendStatus] = useState('checking');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [fieldToFocus, setFieldToFocus] = useState(null);
+  const prediction = useRef(null);
+  const healthCheck = useRef(null);
+
+  useEffect(() => {
+    if (fieldToFocus) document.getElementById(fieldToFocus.id)?.focus();
+  }, [fieldToFocus]);
+
   // Checagem de conectividade do backend
   const checkHealth = async () => {
+    healthCheck.current?.abort();
+    const controller = new AbortController();
+    healthCheck.current = controller;
     setBackendStatus('checking');
-    const health = await checkBackendHealth();
-    if (health.status === 'ok') {
-      setBackendStatus(health.data?.model_loaded ? 'ok' : 'degraded');
-    } else {
-      setBackendStatus('offline');
-    }
+    const status = await checkBackendHealth(controller.signal);
+    if (healthCheck.current === controller) setBackendStatus(status);
   };
 
   useEffect(() => {
     checkHealth();
+    return () => {
+      healthCheck.current?.abort();
+      prediction.current?.abort();
+      healthCheck.current = null;
+      prediction.current = null;
+    };
   }, []);
 
+  const invalidatePrediction = () => {
+    prediction.current?.abort();
+    prediction.current = null;
+    setResult(null);
+    setLoading(false);
+    setSlowColdStart(false);
+    setApiError(null);
+  };
+
+  const showFieldErrors = (nextErrors) => {
+    setErrors(nextErrors);
+    const field = Object.keys(nextErrors).find((key) => getFieldTab(key));
+    if (field) {
+      setActiveTab(getFieldTab(field));
+      setFieldToFocus({ id: field });
+    }
+  };
+
   const handleChange = (field, value) => {
+    invalidatePrediction();
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -63,154 +96,33 @@ export default function App() {
 
   // Carrega casos pré-configurados
   const handleLoadPreset = (preset) => {
+    invalidatePrediction();
     setFormData(preset.data);
     setErrors({});
-    setResult(null);
-    setApiError(null);
     setActiveTab(1);
   };
 
   const handleReset = () => {
+    invalidatePrediction();
     setFormData(INITIAL_FORM_DATA);
     setErrors({});
-    setResult(null);
-    setApiError(null);
     setActiveTab(1);
   };
 
-  // Validação do lado do cliente
-  const validateForm = () => {
-    const errs = {};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (prediction.current) return;
+    invalidatePrediction();
 
-    if (formData.age === '' || formData.age < 0 || formData.age > 110) {
-      errs.age = 'Idade deve estar entre 0 e 110 anos.';
-    }
-    if (formData.bmi === '' || formData.bmi < 10.0 || formData.bmi > 60.0) {
-      errs.bmi = 'IMC deve estar entre 10.0 e 60.0 kg/m².';
-    }
-    if (
-      formData.length_of_stay_days === '' ||
-      formData.length_of_stay_days < 0 ||
-      formData.length_of_stay_days > 60
-    ) {
-      errs.length_of_stay_days = 'Tempo de internação deve ser entre 0 e 60 dias.';
-    }
-    if (
-      formData.revisit_count === '' ||
-      formData.revisit_count < 0 ||
-      formData.revisit_count > 20
-    ) {
-      errs.revisit_count = 'Revisitas devem estar entre 0 e 20.';
-    }
-    if (
-      formData.systolic_bp === '' ||
-      formData.systolic_bp < 60 ||
-      formData.systolic_bp > 250
-    ) {
-      errs.systolic_bp = 'Pressão sistólica deve estar entre 60 e 250 mmHg.';
-    }
-    if (
-      formData.diastolic_bp === '' ||
-      formData.diastolic_bp < 30 ||
-      formData.diastolic_bp > 150
-    ) {
-      errs.diastolic_bp = 'Pressão diastólica deve estar entre 30 e 150 mmHg.';
-    }
-    if (
-      formData.heart_rate === '' ||
-      formData.heart_rate < 30 ||
-      formData.heart_rate > 200
-    ) {
-      errs.heart_rate = 'Frequência cardíaca deve estar entre 30 e 200 bpm.';
-    }
-    if (
-      formData.respiratory_rate === '' ||
-      formData.respiratory_rate < 5 ||
-      formData.respiratory_rate > 60
-    ) {
-      errs.respiratory_rate = 'Freq. respiratória deve estar entre 5 e 60 irpm.';
-    }
-    if (
-      formData.temperature === '' ||
-      formData.temperature < 34.0 ||
-      formData.temperature > 42.0
-    ) {
-      errs.temperature = 'Temperatura deve estar entre 34.0 e 42.0 °C.';
-    }
-    if (formData.spo2 === '' || formData.spo2 < 70 || formData.spo2 > 100) {
-      errs.spo2 = 'SpO₂ deve estar entre 70 e 100%.';
-    }
-    if (formData.glucose === '' || formData.glucose < 40 || formData.glucose > 500) {
-      errs.glucose = 'Glicose deve estar entre 40 e 500 mg/dL.';
-    }
-    if (
-      formData.creatinine === '' ||
-      formData.creatinine < 0.3 ||
-      formData.creatinine > 15.0
-    ) {
-      errs.creatinine = 'Creatinina deve estar entre 0.3 e 15.0 mg/dL.';
-    }
-    if (
-      formData.hemoglobin === '' ||
-      formData.hemoglobin < 4.0 ||
-      formData.hemoglobin > 20.0
-    ) {
-      errs.hemoglobin = 'Hemoglobina deve estar entre 4.0 e 20.0 g/dL.';
-    }
-    if (
-      formData.wbc_count === '' ||
-      formData.wbc_count < 1.0 ||
-      formData.wbc_count > 50.0
-    ) {
-      errs.wbc_count = 'Leucócitos devem estar entre 1.0 e 50.0 ×10³/µL.';
-    }
-    if (
-      formData.num_medications === '' ||
-      formData.num_medications < 0 ||
-      formData.num_medications > 30
-    ) {
-      errs.num_medications = 'Nº de medicações deve ser entre 0 e 30.';
-    }
-    if (
-      formData.num_therapeutic_classes === '' ||
-      formData.num_therapeutic_classes < 0 ||
-      formData.num_therapeutic_classes > 15
-    ) {
-      errs.num_therapeutic_classes = 'Classes terapêuticas devem ser entre 0 e 15.';
-    }
-
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    setApiError(null);
-    setSlowColdStart(false);
-
-    if (!validateForm()) {
-      // Direciona para a primeira aba com erro
-      if (errors.age || errors.bmi) setActiveTab(1);
-      else if (errors.length_of_stay_days || errors.revisit_count) setActiveTab(2);
-      else if (
-        errors.systolic_bp ||
-        errors.diastolic_bp ||
-        errors.heart_rate ||
-        errors.respiratory_rate ||
-        errors.temperature ||
-        errors.spo2 ||
-        errors.glucose ||
-        errors.creatinine ||
-        errors.hemoglobin ||
-        errors.wbc_count
-      )
-        setActiveTab(3);
-      else if (errors.num_medications || errors.num_therapeutic_classes) setActiveTab(4);
-
-      setApiError('Por favor, corrija os campos inválidos antes de submeter.');
+    const nextErrors = validateForm(formData);
+    showFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setApiError('Revise os campos indicados para calcular o risco.');
       return;
     }
 
+    const controller = new AbortController();
+    prediction.current = controller;
     setLoading(true);
 
     // Constrói payload de acordo com os tipos esperados pelo Pydantic
@@ -235,10 +147,7 @@ export default function App() {
       revisit_count: Number(formData.revisit_count),
       days_since_last_discharge: formData.is_first_admission
         ? null
-        : formData.days_since_last_discharge !== '' &&
-          formData.days_since_last_discharge !== null
-        ? Number(formData.days_since_last_discharge)
-        : null,
+        : Number(formData.days_since_last_discharge),
 
       systolic_bp: Number(formData.systolic_bp),
       diastolic_bp: Number(formData.diastolic_bp),
@@ -253,7 +162,7 @@ export default function App() {
       disease_category: formData.disease_category,
       disease_severity: formData.disease_severity,
 
-      num_medications: Number(formData.num_medications),
+      num_medications: validStep(4),
       num_therapeutic_classes: Number(formData.num_therapeutic_classes),
       has_high_risk_med: Number(formData.has_high_risk_med),
       has_anticoagulant: Number(formData.has_anticoagulant),
@@ -263,23 +172,37 @@ export default function App() {
       has_ace_arb: Number(formData.has_ace_arb),
     };
 
-    const res = await requestPrediction(payload, (isSlow) => {
-      setSlowColdStart(isSlow);
+    const res = await requestPrediction(payload, controller.signal, () => {
+      if (prediction.current === controller) setSlowColdStart(true);
     });
-
+    if (prediction.current !== controller) return;
+    prediction.current = null;
     setLoading(false);
     setSlowColdStart(false);
 
     if (res.success) {
-      setResult(res.data);
-      // Rola suavemente até o card de resultado
-      setTimeout(() => {
-        document.getElementById('resultado-clinico')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      if (backendStatus !== 'ok') checkHealth();
+      setResult({ data: res.data, input: payload });
     } else {
+      if (res.status === 503) checkHealth();
+      if (res.status === 422 && Array.isArray(res.details)) {
+        const fieldErrors = {};
+        for (const detail of res.details) {
+          const field = detail.loc?.[1];
+          if (getFieldTab(field)) fieldErrors[field] = 'Revise o valor deste campo.';
+        }
+        showFieldErrors(fieldErrors);
+      }
       setApiError(res.message);
     }
   };
+
+  useEffect(() => {
+    if (result) document.getElementById('resultado-clinico')?.focus();
+  }, [result]);
+
+  const invalidFields = Object.keys(validateForm(formData));
+  const validStep = (step) => !invalidFields.some((field) => getFieldTab(field) === step);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100/70">
@@ -291,7 +214,7 @@ export default function App() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Banner de Apresentação e Presets Rápidos */}
-        <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg mb-8">
+        <div className="print:hidden bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="max-w-2xl">
               <span className="badge-chip bg-teal-500/30 text-teal-200 border border-teal-400/30 mb-2">
@@ -310,7 +233,7 @@ export default function App() {
             <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 shrink-0">
               <span className="text-xs font-bold uppercase tracking-wider text-teal-200 block mb-2.5 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                Carregar Casos de Teste (1 Clique)
+                Carregar casos de demonstração
               </span>
               <div className="flex flex-col sm:flex-row gap-2">
                 {CLINICAL_PRESETS.map((p) => (
@@ -339,17 +262,26 @@ export default function App() {
           </div>
         </div>
 
-        {/* Alerta de Cold Start (Render Free Tier) */}
+        {backendStatus !== 'ok' && backendStatus !== 'checking' && (
+          <div role="status" className="print:hidden mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {backendStatus === 'degraded'
+              ? 'A API respondeu, mas o modelo não está carregado. Confira os logs do backend.'
+              : import.meta.env.DEV
+              ? 'Sem resposta da API. Confira se o backend está rodando na porta 8000 ou revise VITE_API_URL.'
+              : 'Sem resposta da API. Confira a URL configurada e a disponibilidade do backend.'}
+          </div>
+        )}
+
+        {/* Aviso de demora */}
         {slowColdStart && (
-          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
+          <div role="status" className="print:hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
             <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Aguardando Inicialização do Servidor (Cold Start)
+                Aguardando resposta da API
               </h4>
               <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                O backend gratuito no Render entra em hibernação após 15 minutos de inatividade.
-                A primeira requisição pode levar de 30 a 50 segundos para despertar a API. Aguarde...
+                Se o servidor estiver iniciando, a primeira resposta pode demorar.
               </p>
             </div>
           </div>
@@ -357,11 +289,11 @@ export default function App() {
 
         {/* Alerta de Erro da API */}
         {apiError && (
-          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
+          <div role="alert" className="print:hidden bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
             <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800">
-                Falha na Requisição
+                Não foi possível calcular o risco
               </h4>
               <p className="text-xs text-rose-700 mt-0.5">{apiError}</p>
             </div>
@@ -369,20 +301,20 @@ export default function App() {
         )}
 
         {/* Formulário Principal em Abas */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+        <div className="print:hidden bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
           <div className="p-6 sm:p-8">
             <TabsNavigation
               activeTab={activeTab}
               onSelectTab={setActiveTab}
               tabCompletion={{
-                demographics: formData.age !== '' && formData.bmi !== '',
-                encounter: formData.length_of_stay_days !== '',
-                clinical: formData.systolic_bp !== '' && formData.heart_rate !== '',
-                medications: formData.num_medications !== '',
+                demographics: validStep(1),
+                encounter: validStep(2),
+                clinical: validStep(3),
+                medications: validStep(4),
               }}
             />
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               {activeTab === 1 && (
                 <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />
               )}
@@ -397,7 +329,7 @@ export default function App() {
               )}
 
               {/* Barra de Navegação entre Etapas */}
-              <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-8 mt-8 border-t border-slate-200">
                 <div>
                   {activeTab > 1 ? (
                     <button
@@ -415,7 +347,7 @@ export default function App() {
                       className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      Restaurar Padrão
+                      Restaurar caso inicial
                     </button>
                   )}
                 </div>
@@ -458,13 +390,13 @@ export default function App() {
         {/* Card de Resultado da Predição */}
         {result && (
           <div className="mb-12">
-            <ResultCard result={result} formData={formData} onReset={handleReset} />
+            <ResultCard result={result.data} formData={result.input} onReset={handleReset} />
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+      <footer className="print:hidden bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         <p>
           HospPredict — Trabalho Final de Probabilidade e Estatística • IFCE (Engenharia da Computação)
         </p>

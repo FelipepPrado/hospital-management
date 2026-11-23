@@ -40,6 +40,8 @@ export default function ResultCard({ result, formData, onReset }) {
   return (
     <div
       id="resultado-clinico"
+      tabIndex={-1}
+      aria-labelledby="result-title"
       className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
     >
       {/* Top Banner de Status */}
@@ -68,13 +70,13 @@ export default function ResultCard({ result, formData, onReset }) {
                   v{result.model_version || '1.0'}
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1">
+              <h2 id="result-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1">
                 {result.class_label}
               </h2>
               <p className="text-sm text-white/90 mt-0.5">
                 {isHighRisk
-                  ? 'Paciente elegível para o Protocolo de Prevenção de Readmissão Hospitalar.'
-                  : 'Paciente com parâmetros estáveis, elegível para alta padrão.'}
+                  ? 'O modelo estimou risco elevado de readmissão.'
+                  : 'O modelo estimou risco baixo de readmissão.'}
               </p>
             </div>
           </div>
@@ -153,11 +155,12 @@ export default function ResultCard({ result, formData, onReset }) {
             </div>
             <div>
               <h4 className="text-sm font-bold uppercase tracking-wider">
-                Conduta Clínica Recomendada
+                Sugestão gerada pelo sistema
               </h4>
               <p className="text-sm font-medium mt-1 leading-relaxed">
                 {result.recommendation}
               </p>
+              <p className="mt-2 text-xs">Demonstração acadêmica com dados sintéticos. O resultado não determina a conduta clínica.</p>
             </div>
           </div>
         </div>
@@ -183,14 +186,14 @@ export default function ResultCard({ result, formData, onReset }) {
         )}
 
         {/* Ações / Botões */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
+        <div className="print:hidden flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
           <button
             type="button"
             onClick={onReset}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
-            Nova Avaliação / Limpar
+            Restaurar caso inicial
           </button>
 
           <button
