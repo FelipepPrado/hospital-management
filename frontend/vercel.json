@@ -2,6 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "buildCommand": "VITE_API_URL= npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "https://hosp-predict-api-preview-wx73.onrender.com/health"
+    },
+    {
+      "source": "/api/v1/predict/readmission-30d",
+      "destination": "https://hosp-predict-api-preview-wx73.onrender.com/api/v1/predict/readmission-30d"
+    }
+  ]
 }
